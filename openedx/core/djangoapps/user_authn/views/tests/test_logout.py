@@ -7,13 +7,13 @@ import unittest
 
 import ddt
 import mock
-import six.moves.urllib.parse as parse  # pylint: disable=import-error
+from six.moves.urllib import parse as parse  # pylint: disable=import-error
 from django.conf import settings
 from django.test import TestCase
 from django.test.utils import override_settings
 from django.urls import reverse
-from openedx.core.djangoapps.oauth_dispatch.tests.factories import ApplicationFactory
 
+from openedx.core.djangoapps.oauth_dispatch.tests.factories import ApplicationFactory
 from student.tests.factories import UserFactory
 
 

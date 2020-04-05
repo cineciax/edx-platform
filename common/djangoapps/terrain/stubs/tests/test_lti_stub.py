@@ -6,7 +6,8 @@ Unit tests for stub LTI implementation.
 import unittest
 
 import requests
-import six.moves.urllib.request  # pylint: disable=import-error
+import six
+from six.moves.urllib import request  # pylint: disable=import-error
 from mock import Mock, patch
 
 from terrain.stubs.lti import StubLtiService

@@ -5,32 +5,29 @@ Passes settings.MODULESTORE as kwargs to MongoModuleStore
 """
 
 
-from importlib import import_module
 import gettext
 import logging
-
-import six
-from pkg_resources import resource_filename
 import re
+from importlib import import_module
 
-from django.conf import settings
-
-# This configuration must be executed BEFORE any additional Django imports. Otherwise, the imports may fail due to
-# Django not being configured properly. This mostly applies to tests.
-if not settings.configured:
-    settings.configure()
-
-from django.core.cache import caches, InvalidCacheBackendError
 import django.dispatch
 import django.utils
+import six
+from django.conf import settings
+from django.core.cache import InvalidCacheBackendError, caches
 from django.utils.translation import get_language, to_locale
 from edx_django_utils.cache import DEFAULT_REQUEST_CACHE
+from pkg_resources import resource_filename
 
 from xmodule.contentstore.django import contentstore
 from xmodule.modulestore.draft_and_published import BranchSettingMixin
 from xmodule.modulestore.mixed import MixedModuleStore
 from xmodule.util.xmodule_django import get_current_request_hostname
 
+# This configuration must be executed BEFORE any additional Django imports. Otherwise, the imports may fail due to
+# Django not being configured properly. This mostly applies to tests.
+if not settings.configured:
+    settings.configure()
 # We also may not always have the current request user (crum) module available
 try:
     from xblock_django.user_service import DjangoXBlockUserService

@@ -9,31 +9,34 @@ It exposes a module-level variable named ``application``. Django's
 """
 
 
-from openedx.core.lib.logsettings import log_python_warnings
-log_python_warnings()
-
-# Patch the xml libs
-from safe_lxml import defuse_xml_libs
-defuse_xml_libs()
+import os
 
 # Disable PyContract contract checking when running as a webserver
 import contracts
-contracts.disable_all()
-
-import os
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "lms.envs.aws")
+# This application object is used by the development server
+# as well as any WSGI server configured to use this file.
+from django.core.wsgi import get_wsgi_application
 
 import lms.startup as startup
+from openedx.core.lib.logsettings import log_python_warnings
+# Patch the xml libs
+from safe_lxml import defuse_xml_libs
+from xmodule.modulestore.django import modulestore
+
+log_python_warnings()
+
+defuse_xml_libs()
+
+contracts.disable_all()
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "lms.envs.aws")
+
 startup.run()
 
-from xmodule.modulestore.django import modulestore
 
 # Trigger a forced initialization of our modulestores since this can take a
 # while to complete and we want this done before HTTP requests are accepted.
 modulestore()
 
 
-# This application object is used by the development server
-# as well as any WSGI server configured to use this file.
-from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()  # pylint: disable=invalid-name

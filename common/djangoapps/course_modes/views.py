@@ -42,7 +42,6 @@ from student.models import CourseEnrollment
 from util.db import outer_atomic
 from xmodule.modulestore.django import modulestore
 
-
 LOG = logging.getLogger(__name__)
 
 

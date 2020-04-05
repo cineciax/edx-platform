@@ -9,9 +9,7 @@ import json
 import logging
 
 import six
-import six.moves.urllib.error  # pylint: disable=import-error
-import six.moves.urllib.parse  # pylint: disable=import-error
-import six.moves.urllib.request  # pylint: disable=import-error
+from six.moves.urllib import error, parse, request  # pylint: disable=import-error
 from course_modes.models import CourseMode
 from django.conf import settings
 from django.contrib.auth.decorators import login_required

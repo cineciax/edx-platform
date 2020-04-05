@@ -43,86 +43,85 @@ When refering to XBlocks, we use the entry-point name. For example,
 import imp
 import os
 import sys
+############################# TEMPLATE CONFIGURATION #############################
+# Mako templating
+import tempfile
 from datetime import timedelta
+
+from django.urls import reverse_lazy
+from path import Path as path
+
 import lms.envs.common
+from cms.lib.xblock.authoring_mixin import AuthoringMixin
+from lms.djangoapps.lms_xblock.mixin import LmsBlockMixin
+# These are standard regexes for pulling out info like course_ids, usage_ids, etc.
+# They are used so that URLs with deprecated-format strings still work.
 # Although this module itself may not use these imported variables, other dependent modules may.
-from lms.envs.common import (
-    USE_TZ, ALL_LANGUAGES, update_module_store_settings, ASSET_IGNORE_REGEX,
-    PARENTAL_CONSENT_AGE_LIMIT, REGISTRATION_EMAIL_PATTERNS_ALLOWED,
-    # The following PROFILE_IMAGE_* settings are included as they are
-    # indirectly accessed through the email opt-in API, which is
-    # technically accessible through the CMS via legacy URLs.
-    PROFILE_IMAGE_BACKEND, PROFILE_IMAGE_DEFAULT_FILENAME, PROFILE_IMAGE_DEFAULT_FILE_EXTENSION,
-    PROFILE_IMAGE_HASH_SEED, PROFILE_IMAGE_MIN_BYTES, PROFILE_IMAGE_MAX_BYTES, PROFILE_IMAGE_SIZES_MAP,
-    # The following setting is included as it is used to check whether to
-    # display credit eligibility table on the CMS or not.
-    COURSE_MODE_DEFAULTS, DEFAULT_COURSE_ABOUT_IMAGE_URL,
-
-    # User-uploaded content
-    MEDIA_ROOT,
-    MEDIA_URL,
-
-    # Lazy Gettext
-    _,
-
-    # Django REST framework configuration
-    REST_FRAMEWORK,
-
-    STATICI18N_OUTPUT_DIR,
-
-    # Heartbeat
+from lms.envs.common import (  # The following PROFILE_IMAGE_* settings are included as they are; indirectly accessed
+    # through the email opt-in API, which is; technically accessible through the CMS via legacy URLs.;
+    # The following setting is included as it is used to check whether to; display credit eligibility table on the CMS
+    # or not.; User-uploaded content; Lazy Gettext; Django REST framework configuration; Heartbeat; Default site to use
+    # if no site exists matching request headers; constants for redirects app; This is required for the migrations in
+    # oauth_dispatch.models; otherwise it fails saying this attribute is not present in Settings; Although Studio does
+    # not enable OAuth2 Provider capability, the new approach; to generating test databases will discover and try to
+    # create all tables; and this setting needs to be present; django-debug-toolbar; Enterprise service settings;
+    # Methods to derive settings
+    ALL_LANGUAGES,
+    ASSET_IGNORE_REGEX,
+    ASSET_KEY_PATTERN,
+    CONTENT_TYPE_GATE_GROUP_IDS,
+    COURSE_ENROLLMENT_MODES,
+    COURSE_ID_PATTERN,
+    COURSE_KEY_PATTERN,
+    COURSE_KEY_REGEX,
+    COURSE_MODE_DEFAULTS,
+    DEBUG_TOOLBAR_PATCH_SETTINGS,
+    DEFAULT_COURSE_ABOUT_IMAGE_URL,
+    DISABLE_ACCOUNT_ACTIVATION_REQUIREMENT_SWITCH,
+    ENTERPRISE_CATALOG_INTERNAL_ROOT_URL,
+    GENERATE_PROFILE_SCORES,
+    HEARTBEAT_CELERY_TIMEOUT,
     HEARTBEAT_CHECKS,
     HEARTBEAT_EXTENDED_CHECKS,
-    HEARTBEAT_CELERY_TIMEOUT,
-
-    # Default site to use if no site exists matching request headers
-    SITE_ID,
-
-    # constants for redirects app
-    REDIRECT_CACHE_TIMEOUT,
-    REDIRECT_CACHE_KEY_PREFIX,
-
-    # This is required for the migrations in oauth_dispatch.models
-    # otherwise it fails saying this attribute is not present in Settings
-    # Although Studio does not enable OAuth2 Provider capability, the new approach
-    # to generating test databases will discover and try to create all tables
-    # and this setting needs to be present
-    OAUTH2_PROVIDER_APPLICATION_MODEL,
     JWT_AUTH,
-
-    USERNAME_REGEX_PARTIAL,
+    MEDIA_ROOT,
+    MEDIA_URL,
+    OAUTH2_PROVIDER_APPLICATION_MODEL,
+    PARENTAL_CONSENT_AGE_LIMIT,
+    PROFILE_IMAGE_BACKEND,
+    PROFILE_IMAGE_DEFAULT_FILE_EXTENSION,
+    PROFILE_IMAGE_DEFAULT_FILENAME,
+    PROFILE_IMAGE_HASH_SEED,
+    PROFILE_IMAGE_MAX_BYTES,
+    PROFILE_IMAGE_MIN_BYTES,
+    PROFILE_IMAGE_SIZES_MAP,
+    REDIRECT_CACHE_KEY_PREFIX,
+    REDIRECT_CACHE_TIMEOUT,
+    REGISTRATION_EMAIL_PATTERNS_ALLOWED,
+    REST_FRAMEWORK,
+    SITE_ID,
+    STATICI18N_OUTPUT_DIR,
+    USAGE_KEY_PATTERN,
+    USE_TZ,
     USERNAME_PATTERN,
-
-    # django-debug-toolbar
-    DEBUG_TOOLBAR_PATCH_SETTINGS,
-
-    COURSE_ENROLLMENT_MODES,
-    CONTENT_TYPE_GATE_GROUP_IDS,
-
-    DISABLE_ACCOUNT_ACTIVATION_REQUIREMENT_SWITCH,
-
-    GENERATE_PROFILE_SCORES,
-
-    # Enterprise service settings
-    ENTERPRISE_CATALOG_INTERNAL_ROOT_URL,
-
-    # Methods to derive settings
-    _make_mako_template_dirs,
+    USERNAME_REGEX_PARTIAL,
+    _,
     _make_locale_paths,
+    _make_mako_template_dirs,
+    update_module_store_settings
 )
-from path import Path as path
-from django.urls import reverse_lazy  # pylint: disable=wrong-import-order
-
-from lms.djangoapps.lms_xblock.mixin import LmsBlockMixin
-from cms.lib.xblock.authoring_mixin import AuthoringMixin
-from xmodule.modulestore.edit_info import EditInfoMixin
-from openedx.core.djangoapps.theming.helpers_dirs import (
-    get_themes_unchecked,
-    get_theme_base_dirs_from_settings
-)
-from openedx.core.lib.license import LicenseMixin
+from openedx.core.djangoapps.plugins import constants as plugin_constants
+from openedx.core.djangoapps.plugins import plugin_apps, plugin_settings
+from openedx.core.djangoapps.theming.helpers_dirs import get_theme_base_dirs_from_settings, get_themes_unchecked
 from openedx.core.lib.derived import derived, derived_collection_entry
+from openedx.core.lib.license import LicenseMixin
+from openedx.core.lib.rooted_paths import rooted_glob
 from openedx.core.release import doc_version
+from xmodule.modulestore import prefer_xmodules
+from xmodule.modulestore.edit_info import EditInfoMixin
+# Import after sys.path fixup
+from xmodule.modulestore.inheritance import InheritanceMixin
+from xmodule.x_module import XModuleMixin
 
 ################ Enable credit eligibility feature ####################
 ENABLE_CREDIT_ELIGIBILITY = True
@@ -441,9 +440,6 @@ BRANCH_IO_KEY = ''
 ######################## GOOGLE ANALYTICS ###########################
 GOOGLE_ANALYTICS_ACCOUNT = None
 
-############################# TEMPLATE CONFIGURATION #############################
-# Mako templating
-import tempfile
 MAKO_MODULE_DIR = os.path.join(tempfile.gettempdir(), 'mako_cms')
 MAKO_TEMPLATE_DIRS_BASE = [
     PROJECT_ROOT / 'templates',
@@ -593,11 +589,6 @@ ELASTIC_SEARCH_CONFIG = [
     }
 ]
 
-# These are standard regexes for pulling out info like course_ids, usage_ids, etc.
-# They are used so that URLs with deprecated-format strings still work.
-from lms.envs.common import (
-    COURSE_KEY_PATTERN, COURSE_KEY_REGEX, COURSE_ID_PATTERN, USAGE_KEY_PATTERN, ASSET_KEY_PATTERN
-)
 
 ######################### CSRF #########################################
 
@@ -711,10 +702,6 @@ P3P_HEADER = 'CP="Open EdX does not have a P3P policy."'
 
 ############# XBlock Configuration ##########
 
-# Import after sys.path fixup
-from xmodule.modulestore.inheritance import InheritanceMixin
-from xmodule.modulestore import prefer_xmodules
-from xmodule.x_module import XModuleMixin
 
 # These are the Mixins that should be added to every XBlock.
 # This should be moved into an XBlock Runtime/Application object
@@ -1008,7 +995,6 @@ STATICFILES_FINDERS = [
     'pipeline.finders.PipelineFinder',
 ]
 
-from openedx.core.lib.rooted_paths import rooted_glob
 
 PIPELINE['STYLESHEETS'] = {
     'style-vendor': {
@@ -2007,7 +1993,6 @@ SYSTEM_WIDE_ROLE_CLASSES = []
 
 ############## Installed Django Apps #########################
 
-from openedx.core.djangoapps.plugins import plugin_apps, plugin_settings, constants as plugin_constants
 INSTALLED_APPS.extend(plugin_apps.get_apps(plugin_constants.ProjectType.CMS))
 plugin_settings.add_plugins(__name__, plugin_constants.ProjectType.CMS, plugin_constants.SettingsType.COMMON)
 

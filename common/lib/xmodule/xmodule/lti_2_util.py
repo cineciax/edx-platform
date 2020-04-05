@@ -13,11 +13,12 @@ import re
 
 import mock
 import six
-import six.moves.urllib.parse
+from six.moves.urllib import parse
 from oauthlib.oauth1 import Client
 from six import text_type
 from webob import Response
 from xblock.core import XBlock
+
 from openedx.core.lib.grade_utils import round_away_from_zero
 
 log = logging.getLogger(__name__)

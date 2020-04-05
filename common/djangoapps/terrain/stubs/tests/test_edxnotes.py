@@ -10,7 +10,7 @@ from uuid import uuid4
 import ddt
 import requests
 import six
-import six.moves.urllib.parse  # pylint: disable=import-error
+from six.moves.urllib import parse
 from six.moves import range
 
 from ..edxnotes import StubEdxNotesService
